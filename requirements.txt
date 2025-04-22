@@ -1,0 +1,8 @@
+yfinance
+pandas
+numpy
+matplotlib
+openai
+scipy
+cvxpy
+PyPortfolioOpt
