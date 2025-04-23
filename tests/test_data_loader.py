@@ -11,11 +11,11 @@ def test_data_loader():
             return_updated_tickers=True
         )
 
-        print(f"\n✅ Valid tickers found: {valid}")
-        print(f"\n📈 Sample data (head):\n{data.head()}")
+        print(f"\nValid tickers found: {valid}")
+        print(f"\nSample data (head):\n{data.head()}")
 
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"Test failed: {e}")
 
 
 if __name__ == "__main__":
