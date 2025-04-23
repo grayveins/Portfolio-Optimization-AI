@@ -1,4 +1,4 @@
-from src.data_loader import DataLoader
+from src.core.market_data import DataLoader
 
 
 def test_data_loader():
