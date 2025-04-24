@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from pypfopt import EfficientFrontier, risk_models, expected_returns
 
+
 class PortfolioOptimizer:
     """
     Optimizes a portfolio based on expected returns and covariance matrix using PyPortfolioOpt.

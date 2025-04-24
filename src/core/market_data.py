@@ -12,13 +12,13 @@ class DataLoader:
 
     @staticmethod
     def get_data(
-        tickers: List[str],
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        period: Optional[str] = "6mo",        # Default range: past 6 months
-        frequency: str = "Adj Close",         # Type of price data to extract
-        return_updated_tickers: bool = False  # Return cleaned ticker list too
-    ) -> Tuple[pd.DataFrame, Optional[List[str]]]:
+            tickers: List[str],
+            start_date: Optional[str] = None,
+            end_date: Optional[str] = None,
+            period: Optional[str] = "6mo",        # Default range: past 6 months
+            frequency: str = "Adj Close",         # Type of price data to extract
+            return_updated_tickers: bool = False  # Return cleaned ticker list too
+            ) -> Tuple[pd.DataFrame, Optional[List[str]]]:
         """
         Downloads and filters historical stock data.
 
@@ -53,13 +53,11 @@ class DataLoader:
 
         try:
             # Step 3: Download historical price data for all valid tickers
-            if period:
-                data = yf.download(valid_tickers, period=period, group_by="ticker", auto_adjust=False)
-            else:
-                if not start_date or not end_date:
-                    raise ValueError("Start date and end date must be specified if not using period.")
-                data = yf.download(valid_tickers, start=start_date, end=end_date, group_by="ticker", auto_adjust=False)
 
+            if start_date and end_date:
+                data = yf.download(valid_tickers, start=start_date, end=end_date, group_by="ticker", auto_adjust=False)
+            else:
+                data = yf.download(valid_tickers, period=period, group_by="ticker", auto_adjust=False)
             # Step 4: Handle column extraction depending on number of tickers
             if len(valid_tickers) > 1:
                 # Multi-index dataframe: (date, ticker, field)
