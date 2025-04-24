@@ -34,13 +34,13 @@ if start_date >= end_date:
 # Forecast and optimizer
 with st.sidebar.expander("Forecast & Optimization Settings"):
     opt_method = st.radio("Optimization Method", ["Maximize Sharpe", "Minimize Volatility"])
-    forecast_source = st.radio("Forecast Source", ["Mean Historical Return", "Mock GPT", "CAPM (placeholder)"])
+    forecast_source = st.radio("Forecast Source", ["Mean Historical Return", "GPT", "CAPM"])
     investment = st.number_input("Investment Amount ($)", min_value=1000, value=10000, step=500)
 
 run = st.sidebar.button("Run Optimization")
 
 # Main Title
-st.title("GPT Full Port")
+st.title("Stock Portfolio Optimization with AI")
 
 if run:
     if len(tickers) < 2:
@@ -68,12 +68,38 @@ if run:
 
     if forecast_source == "Mean Historical Return":
         views = mu.copy()
-    else:
-        mock_views = {t: {"expected_return": mu[t], "confidence": 70} for t in valid}
-        views = pd.Series({t: mock_views[t]["expected_return"] for t in valid})
+
+    elif forecast_source == "GPT":
+        from src.ai.gpt_forecaster import GPTForecaster
+        gpt = GPTForecaster()
+        views_dict = {}
+        for t in valid:
+            try:
+                forecast = gpt.generate_forecast(t)
+                views_dict[t] = forecast.get("expected_return", mu[t])
+            except Exception as e:
+                views_dict[t] = mu[t]  # fallback to historical return if error
+        views = pd.Series(views_dict)
+
+    elif forecast_source == "CAPM":
+        from src.core.expected_return import CapmCalculator
+        capm = CapmCalculator(str(start_date), str(end_date))
+        views = capm.calculate_expected_return(valid)
 
     market_weights = pd.Series([1/len(valid)] * len(valid), index=valid)
 
+    # Ensure exact alignment of index and column names
+    valid_assets = list(S.columns)
+
+    views = views.reindex(valid_assets).dropna()
+    market_weights = market_weights.reindex(valid_assets).dropna()
+    S = S.loc[valid_assets, valid_assets]  # Reorder + trim covariance matrix too
+
+# Final check
+    assert set(views.index) == set(S.index) == set(S.columns) == set(market_weights.index), "Alignment error"
+
+    st.write("Views:", views.index.tolist())
+    st.write("Cov matrix assets:", S.columns.tolist())
     bl_model = BlackLittermanModelWrapper(S, market_weights, views)
     bl_returns = bl_model.get_bl_returns()
     bl_cov = bl_model.get_bl_cov()
@@ -83,7 +109,7 @@ if run:
     performance = optimizer.portfolio_performance(weights)
 
     # Allocation
-    st.markdown("## Portfolio Allocation\n")
+    st.markdown("## Portfolio Allocation")
     col1, col2 = st.columns(2)
     alloc_df = weights.rename("Allocation").reset_index().rename(columns={"index": "Ticker"})
     alloc_df["Allocation %"] = (alloc_df["Allocation"] * 100).round(2)
@@ -96,19 +122,14 @@ if run:
         st.plotly_chart(fig)
 
     # Performance
-    st.markdown("## Portfolio Performance\n")
+    st.markdown("## Portfolio Performance")
     perf_col1, perf_col2, perf_col3 = st.columns(3)
     perf_col1.metric("Expected Annual Return", f"{performance['expected_annual_return']:.2%}")
     perf_col2.metric("Annual Volatility", f"{performance['annual_volatility']:.2%}")
     perf_col3.metric("Sharpe Ratio", f"{performance['sharpe_ratio']:.2f}")
 
-    # Projected Return
-    projected_gain = investment * performance['expected_annual_return']
-    st.markdown("## Projected Return\n")
-    st.write(f"Based on your investment of ${investment:,.0f}, your projected return is ${projected_gain:,.2f} after one year.")
-
     # Simulated portfolio value over time
-    st.markdown("## Portfolio Growth\n")
+    st.markdown("## Portfolio Growth")
     normalized_prices = prices[valid].div(prices[valid].iloc[0])
     weighted_prices = normalized_prices.mul(weights[valid], axis=1)
     portfolio_growth = weighted_prices.sum(axis=1) * investment
@@ -121,4 +142,5 @@ if run:
     fig_growth.update_traces(line_color="blue", fillcolor="rgba(0,0,255,0.2)")
     fig_growth.update_layout(showlegend=False)
     st.plotly_chart(fig_growth)
+
 
