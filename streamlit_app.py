@@ -56,16 +56,14 @@ if run:
         return_updated_tickers=True
     )
 
-    if len(valid) < 2:
-        st.warning("Not enough valid tickers to proceed.")
-        st.stop()
-    if prices.empty or prices.shape[0] < 5:
-        st.error("Not enough historical price data for the selected time range. Try expanding the range.")
+    if len(valid) < 2 or prices.empty or prices.shape[0] < 5:
+        st.error("❌ Not enough valid tickers or price data. Try a different range or assets.")
         st.stop()
 
     mu = expected_returns.mean_historical_return(prices)
     S = risk_models.sample_cov(prices)
 
+    # Forecast logic
     if forecast_source == "Mean Historical Return":
         views = mu.copy()
 
@@ -77,8 +75,8 @@ if run:
             try:
                 forecast = gpt.generate_forecast(t)
                 views_dict[t] = forecast.get("expected_return", mu[t])
-            except Exception as e:
-                views_dict[t] = mu[t]  # fallback to historical return if error
+            except:
+                views_dict[t] = mu[t]
         views = pd.Series(views_dict)
 
     elif forecast_source == "CAPM":
@@ -86,24 +84,34 @@ if run:
         capm = CapmCalculator(str(start_date), str(end_date))
         views = capm.calculate_expected_return(valid)
 
-    market_weights = pd.Series([1/len(valid)] * len(valid), index=valid)
+        if views.empty:
+            st.warning("⚠️ CAPM returned no values. Falling back to historical mean.")
+            views = mu.copy()
 
-    # Ensure exact alignment of index and column names
-    valid_assets = list(S.columns)
+    # Clean up views
+    views = views[~views.index.duplicated(keep="last")].dropna()
+    market_weights = pd.Series([1 / len(views)] * len(views), index=views.index)
 
-    views = views.reindex(valid_assets).dropna()
-    market_weights = market_weights.reindex(valid_assets).dropna()
-    S = S.loc[valid_assets, valid_assets]  # Reorder + trim covariance matrix too
+    # Final alignment
+    common_assets = views.index.intersection(S.columns).intersection(S.index)
+    views = views.loc[common_assets]
+    S = S.loc[common_assets, common_assets]
+    market_weights = market_weights.loc[common_assets]
 
-# Final check
-    assert set(views.index) == set(S.index) == set(S.columns) == set(market_weights.index), "Alignment error"
+    if len(common_assets) < 2:
+        st.error("❌ Not enough overlapping assets after alignment. Try adjusting tickers or date range.")
+        st.stop()
 
-    st.write("Views:", views.index.tolist())
-    st.write("Cov matrix assets:", S.columns.tolist())
+    # Run Black-Litterman model
     bl_model = BlackLittermanModelWrapper(S, market_weights, views)
     bl_returns = bl_model.get_bl_returns()
     bl_cov = bl_model.get_bl_cov()
 
+    if bl_returns.empty or bl_cov.empty:
+        st.error("❌ Black-Litterman output invalid. Try another forecast method.")
+        st.stop()
+
+    # Optimize
     optimizer = PortfolioOptimizer(expected_returns=bl_returns, cov_matrix=bl_cov)
     weights = optimizer.maximize_sharpe() if opt_method == "Maximize Sharpe" else optimizer.minimize_volatility()
     performance = optimizer.portfolio_performance(weights)
@@ -116,7 +124,6 @@ if run:
 
     with col1:
         st.dataframe(alloc_df[["Ticker", "Allocation %"]])
-
     with col2:
         fig = px.pie(alloc_df, names="Ticker", values="Allocation", hole=0.4, title="Allocation Breakdown")
         st.plotly_chart(fig)
@@ -128,19 +135,18 @@ if run:
     perf_col2.metric("Annual Volatility", f"{performance['annual_volatility']:.2%}")
     perf_col3.metric("Sharpe Ratio", f"{performance['sharpe_ratio']:.2f}")
 
-    # Simulated portfolio value over time
+    # Growth chart
     st.markdown("## Portfolio Growth")
-    normalized_prices = prices[valid].div(prices[valid].iloc[0])
-    weighted_prices = normalized_prices.mul(weights[valid], axis=1)
-    portfolio_growth = weighted_prices.sum(axis=1) * investment
+    normalized = prices[common_assets].div(prices[common_assets].iloc[0])
+    weighted = normalized.mul(weights[common_assets], axis=1)
+    growth = weighted.sum(axis=1) * investment
 
-    fig_growth = px.area(
-        portfolio_growth,
+    fig = px.area(
+        growth,
         labels={"index": "Date", "value": "Portfolio Balance ($)"},
         title="Simulated Portfolio Growth Over Time"
     )
-    fig_growth.update_traces(line_color="blue", fillcolor="rgba(0,0,255,0.2)")
-    fig_growth.update_layout(showlegend=False)
-    st.plotly_chart(fig_growth)
-
+    fig.update_traces(line_color="blue", fillcolor="rgba(0,0,255,0.2)")
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(fig)
 

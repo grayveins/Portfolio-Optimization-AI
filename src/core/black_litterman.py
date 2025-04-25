@@ -1,4 +1,3 @@
-
 import pandas as pd
 from typing import Optional
 from pypfopt.black_litterman import BlackLittermanModel
