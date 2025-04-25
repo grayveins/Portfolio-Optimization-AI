@@ -1,12 +1,11 @@
 import openai
+import streamlit as st
 import os
 from typing import List, Dict
 from dotenv import load_dotenv
 
-# Load API key from .env file
-load_dotenv()
-
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Load API key from secrets.toml file
+client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 
 class GPTForecaster:
