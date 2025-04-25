@@ -34,13 +34,13 @@ if start_date >= end_date:
 # Forecast and optimizer
 with st.sidebar.expander("Forecast & Optimization Settings"):
     opt_method = st.radio("Optimization Method", ["Maximize Sharpe", "Minimize Volatility"])
-    forecast_source = st.radio("Forecast Source", ["Mean Historical Return", "GPT", "CAPM"])
+    forecast_source = st.radio("Forecast Source", ["Mean Historical Return", "GPT", "Capital Asset Pricing Model (CAPM)"])
     investment = st.number_input("Investment Amount ($)", min_value=1000, value=10000, step=500)
 
 run = st.sidebar.button("Run Optimization")
 
 # Main Title
-st.title("Stock Portfolio Optimization with AI")
+st.title("S&P500 Optimizer")
 
 if run:
     if len(tickers) < 2:
@@ -57,7 +57,7 @@ if run:
     )
 
     if len(valid) < 2 or prices.empty or prices.shape[0] < 5:
-        st.error("❌ Not enough valid tickers or price data. Try a different range or assets.")
+        st.error("Not enough valid tickers or price data. Try a different range or assets.")
         st.stop()
 
     mu = expected_returns.mean_historical_return(prices)
@@ -79,7 +79,7 @@ if run:
                 views_dict[t] = mu[t]
         views = pd.Series(views_dict)
 
-    elif forecast_source == "CAPM":
+    elif forecast_source == "Capital Asset Pricing Model (CAPM)":
         from src.core.expected_return import CapmCalculator
         capm = CapmCalculator(str(start_date), str(end_date))
         views = capm.calculate_expected_return(valid)
@@ -99,7 +99,7 @@ if run:
     market_weights = market_weights.loc[common_assets]
 
     if len(common_assets) < 2:
-        st.error("❌ Not enough overlapping assets after alignment. Try adjusting tickers or date range.")
+        st.error("Not enough overlapping assets after alignment. Try adjusting tickers or date range.")
         st.stop()
 
     # Run Black-Litterman model
@@ -108,7 +108,7 @@ if run:
     bl_cov = bl_model.get_bl_cov()
 
     if bl_returns.empty or bl_cov.empty:
-        st.error("❌ Black-Litterman output invalid. Try another forecast method.")
+        st.error("Black-Litterman output invalid. Try another forecast method.")
         st.stop()
 
     # Optimize
