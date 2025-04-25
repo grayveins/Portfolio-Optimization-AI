@@ -8,6 +8,43 @@ from src.core.market_data import DataLoader
 from pypfopt import expected_returns, risk_models
 import plotly.express as px
 
+st.set_page_config(
+    page_title="Portfolio Optimizer",
+    page_icon="📈",
+    layout="wide",
+)
+
+# Minimalist heading
+st.markdown(
+    """
+    <style>
+        .main {
+            background-color: #191724;
+            color: #e0def4;
+        }
+        .centered-title {
+            text-align: center;
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #f6c177;
+            margin-bottom: 0.5rem;
+        }
+        .subtle-subtitle {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 300;
+            color: #908caa;
+            margin-top: 0;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown("<div class='centered-title'>Portfolio Optimization App</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtle-subtitle'>Simple, transparent, and data-driven investing</div>", unsafe_allow_html=True)
+
+
 # Load S&P 500 tickers
 sp500_df = pd.read_csv("data/sp500_tickers.csv")
 sp500_df = sp500_df[["Ticker", "Name"]].dropna().drop_duplicates(subset="Ticker")
