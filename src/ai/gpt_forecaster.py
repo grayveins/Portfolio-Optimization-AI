@@ -2,7 +2,6 @@ import openai
 import streamlit as st
 import os
 from typing import List, Dict
-from dotenv import load_dotenv
 
 # Load API key from secrets.toml file
 client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
