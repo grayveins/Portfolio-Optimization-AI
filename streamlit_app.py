@@ -28,7 +28,7 @@ logo_b64 = load_logo_base64("logo.png")
 # === HEADER UI ===
 st.markdown(f"""
     <div style='text-align: center; padding-top: 10px;'>
-        <img src="data:image/png;base64,{logo_b64}" width="100" style="margin-bottom: 5px;" />
+        <img src="data:image/png;base64,{logo_b64}" width="300" style="margin-bottom: 5px;" />
         <h1 style='color: #ff4b4b;'>Portfolio Optimization App</h1>
         <p style='color: #aaaaaa;'>Simple, transparent, and data-driven investing</p>
     </div>
