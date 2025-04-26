@@ -20,7 +20,7 @@
 <!-- PROJECT LOGO -->
 <h1 align="center">
   <br>
-  <a href="#"><img src="images/logo.png" width="200"></a>
+  <a href="#"><img src="logo.png" width="200"></a>
   <br>
   AI Portfolio Optimizer
   <br>
